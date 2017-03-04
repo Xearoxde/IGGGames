@@ -5,13 +5,11 @@ import java.awt.EventQueue;
 import java.awt.TextArea;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -35,6 +33,9 @@ import javax.swing.JSpinner;
 import javax.swing.JTextPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.border.EmptyBorder;
+
+import org.apache.commons.io.FileUtils;
+
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
@@ -43,9 +44,14 @@ import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import javax.swing.JProgressBar;
 import java.awt.Color;
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
 
 @SuppressWarnings("serial")
 public class LinkCreator extends JFrame {
+	
+	public static final String VERSION = "1.4.1";
+	
 	private JPanel contentPane;
 	private JCheckBox chckbxDebug = new JCheckBox("DEBUG");
 	private JCheckBox chckbxFromUrl = new JCheckBox("From URL");
@@ -77,10 +83,14 @@ public class LinkCreator extends JFrame {
 			}
 		});
 	}
+	
+	public JPanel getPanel(){
+		return contentPane;
+	}
 
 	public LinkCreator() {
 		setResizable(false);
-		setTitle("IGG-GAMES Download Link Creator - Created by Xearox - Version 1.4.0");
+		setTitle("IGG-GAMES Download Link Creator - Created by Xearox - Version "+VERSION);
 		setDefaultCloseOperation(3);
 		setBounds(100, 100, 973, 724);
 		this.contentPane = new JPanel();
@@ -310,6 +320,17 @@ public class LinkCreator extends JFrame {
 		
 		previewImage.setBounds(280, 67, 210, 210);
 		contentPane.add(previewImage);
+		
+		JButton btnTest = new JButton("test");
+		btnTest.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+			}
+		});
+		btnTest.setBounds(271, 309, 89, 23);
+		contentPane.add(btnTest);
+		
+		new Updater(this).run();
 	}
 
 	public boolean generateLinks(String providerName, JTextPane textPane) {
@@ -329,7 +350,7 @@ public class LinkCreator extends JFrame {
 			input = textPane.getText();
 		} else {
 			try {
-				input = getPageSource(textPane.getText());
+				input = Utilz.getPageSource(textPane.getText());
 			} catch (IOException e) {
 				JOptionPane.showMessageDialog(this.contentPane, "The entered URL is not VALID!", "Try again!", 0);
 				e.printStackTrace();
@@ -349,17 +370,8 @@ public class LinkCreator extends JFrame {
 		}
 		input = input.substring(input.lastIndexOf("<b>Link " + providerName));
 		input = input.replace("&nbsp;", " ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />Â Â Â Â ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br /> Â Â Â Â", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />       ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />Â Â Â Â", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />      ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />     ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />    ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />    ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />   ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br />  ", " &#8211; ");
-		input = input.replace("<b>Link " + providerName + ":</b><br /> ", " &#8211; ");
+		input = input.replaceAll("<b>Link " + providerName + ":</b><br />.*?<a href", " &#8211; <a href");
+		input = input.replaceAll("<b>Link " + providerName + ":</b><br />.*?<a rel=\"nofollow\"", " &#8211; <a href");
 		input = input.substring(0, input.indexOf("</p>"));
 		input = input.replaceAll("</a>", "\n");
 		if (!this.chckbxDebug.isSelected()) {
@@ -424,7 +436,7 @@ public class LinkCreator extends JFrame {
 		String endGameLink = "<!-- /post -->";
 		String begin = "<a class=\"post-thumb \"";
 		String end = "</a>";
-		String pagesource = getPageSource(url);
+		String pagesource = Utilz.getPageSource(url);
 		for (int i = 0; i < 10; i++) {
 			try{
 				pagesource = pagesource.substring(pagesource.indexOf(begin));
@@ -438,20 +450,6 @@ public class LinkCreator extends JFrame {
 		}
 	}
 
-	public String getPageSource(String pageLink) throws IOException {
-		URL url = new URL(pageLink);
-
-		BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
-
-		StringBuffer response = new StringBuffer();
-		String inputLine;
-		while ((inputLine = in.readLine()) != null) {
-			response.append(inputLine + "\n");
-		}
-		in.close();
-		return response.toString();
-	}
-	
 	void updateProgress(final int newValue) {
         progressBar.setValue(newValue);
     }
