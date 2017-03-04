@@ -21,6 +21,7 @@ import java.util.TreeMap;
 
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
@@ -51,8 +52,9 @@ public class LinkCreator extends JFrame {
 	private TextArea textArea = new TextArea();
 	private JCheckBox chckbxSaveToFile = new JCheckBox("Save to File?");
 	private JCheckBox chckbxFromMainpage = new JCheckBox("From Mainpage");
+	private JLabel previewImage = new JLabel("");
 	private List<String> gameLinks = new ArrayList<String>();
-	private Map<String, String> games = new HashMap<String, String>();
+	private Map<String, Game> games = new HashMap<String, Game>();
 	private JSpinner fromSpinner = new JSpinner();
 	private JSpinner toSpinner = new JSpinner();
 	private JScrollPane scrollPane = new JScrollPane();
@@ -78,7 +80,7 @@ public class LinkCreator extends JFrame {
 
 	public LinkCreator() {
 		setResizable(false);
-		setTitle("IGG-GAMES Download Link Creator - Created by Xearox - Version 1.3.1");
+		setTitle("IGG-GAMES Download Link Creator - Created by Xearox - Version 1.4.0");
 		setDefaultCloseOperation(3);
 		setBounds(100, 100, 973, 724);
 		this.contentPane = new JPanel();
@@ -200,7 +202,8 @@ public class LinkCreator extends JFrame {
 				@SuppressWarnings("unchecked")
 				JList<String> list = (JList<String>) e.getSource();
 				String gamename = (String) list.getSelectedValue();
-				textPane.setText((String) LinkCreator.this.games.get(gamename));
+				textPane.setText((String) LinkCreator.this.games.get(gamename).getGameURL());
+				previewImage.setIcon(new ImageIcon(LinkCreator.this.games.get(gamename).getImage()));
 				LinkCreator.this.chckbxFromUrl.setSelected(true);
 				Component[] arrayOfComponent;
 				int j = (arrayOfComponent = LinkCreator.this.contentPane.getComponents()).length;
@@ -305,7 +308,6 @@ public class LinkCreator extends JFrame {
 		progressBar.setBounds(10, 333, 437, 14);
 		contentPane.add(progressBar);
 		
-		JLabel previewImage = new JLabel("");
 		previewImage.setBounds(280, 67, 210, 210);
 		contentPane.add(previewImage);
 	}
@@ -407,11 +409,12 @@ public class LinkCreator extends JFrame {
 		}
 		for (String string : this.gameLinks) {
 			String gameurl = string.substring(string.indexOf("href=\"") + 6, string.indexOf("\" title="));
-			String gamename = string.substring(string.indexOf("\" title=") + 9, string.length() - 2);
+			String gamename = string.substring(string.indexOf("\" title=") + 9, string.indexOf("\">"));
+			String imagePath = string.substring(string.indexOf("<img width=\"210\" height=\"210\" src=\"")+35, string.indexOf(" class=\"attachment-210x210")-1);
 			gamename = gamename.replace("Free Download", "");
 			gamename = gamename.replace("&#8217;", "'");
 			gamename = gamename.replace("&#8211;", "-");
-			this.games.put(gamename, gameurl);
+			this.games.put(gamename, new Game(gamename, gameurl, imagePath));
 		}
 		games = new TreeMap<>(games);
 		return true;
@@ -420,7 +423,7 @@ public class LinkCreator extends JFrame {
 	private void filterPageSource(String url) throws IOException {
 		String endGameLink = "<!-- /post -->";
 		String begin = "<a class=\"post-thumb \"";
-		String end = "\">";
+		String end = "</a>";
 		String pagesource = getPageSource(url);
 		for (int i = 0; i < 10; i++) {
 			try{
