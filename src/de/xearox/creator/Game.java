@@ -2,15 +2,20 @@ package de.xearox.creator;
 
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.URL;
 
 import javax.imageio.ImageIO;
 
-public class Game {
+public class Game implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	private String name;
 	private String gameurl;
 	private String imagePath;
-	private BufferedImage image;
+	private transient BufferedImage image;
 	
 	public Game() {	}
 	
@@ -19,6 +24,10 @@ public class Game {
 		this.gameurl = gameurl;
 		this.imagePath = imagePath;
 		this.createImage(imagePath);
+	}
+	
+	public void createImage(){
+		createImage(imagePath);
 	}
 	
 	private void createImage(String imagePath){

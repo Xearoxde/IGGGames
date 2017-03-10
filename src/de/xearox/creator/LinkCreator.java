@@ -1,22 +1,40 @@
 package de.xearox.creator;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.EventQueue;
+import java.awt.HeadlessException;
 import java.awt.TextArea;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.PrintWriter;
+import java.io.Writer;
+import java.net.URISyntaxException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.TreeMap;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
+import javax.crypto.NoSuchPaddingException;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.ImageIcon;
@@ -27,30 +45,23 @@ import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.border.EmptyBorder;
-
-import org.apache.commons.io.FileUtils;
-
-import javax.swing.JTextField;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
-
-import java.awt.event.KeyAdapter;
-import java.awt.event.KeyEvent;
-import javax.swing.JProgressBar;
-import java.awt.Color;
+import javax.swing.border.EmptyBorder;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
 @SuppressWarnings("serial")
 public class LinkCreator extends JFrame {
 	
-	public static final String VERSION = "1.4.1";
+	public static final String VERSION = "1.5.2";
 	
 	private JPanel contentPane;
 	private JCheckBox chckbxDebug = new JCheckBox("DEBUG");
@@ -70,6 +81,10 @@ public class LinkCreator extends JFrame {
 	private String selectedGame = "";
 	private JTextField textField;
 	private String searchText = "";
+	public Properties prop;
+	
+	public static LinkCreator instance;
+	public static final String changelogURL = "http://pastebin.com/raw/y51jHcb5";
 
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -78,7 +93,7 @@ public class LinkCreator extends JFrame {
 					LinkCreator frame = new LinkCreator();
 					frame.setVisible(true);
 				} catch (Exception e) {
-					e.printStackTrace();
+					Utilz.logger(this, e);
 				}
 			}
 		});
@@ -89,6 +104,19 @@ public class LinkCreator extends JFrame {
 	}
 
 	public LinkCreator() {
+		LinkCreator.instance = this;
+		addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosing(WindowEvent e) {
+				String entry = prop.getProperty("createcachefile");
+				if(entry != null){
+					if(entry.equals("0")){
+						return;
+					}
+				}
+				LinkCreator.this.createCacheFile();
+			}
+		});
 		setResizable(false);
 		setTitle("IGG-GAMES Download Link Creator - Created by Xearox - Version "+VERSION);
 		setDefaultCloseOperation(3);
@@ -168,7 +196,7 @@ public class LinkCreator extends JFrame {
 		});
 		generateButton.setBounds(124, 69, 128, 34);
 		this.contentPane.add(generateButton);
-		this.chckbxDebug.setVisible(false);
+		chckbxDebug.setVisible(false);
 		this.chckbxDebug.setBounds(121, 232, 97, 23);
 		this.contentPane.add(this.chckbxDebug);
 
@@ -212,6 +240,7 @@ public class LinkCreator extends JFrame {
 				@SuppressWarnings("unchecked")
 				JList<String> list = (JList<String>) e.getSource();
 				String gamename = (String) list.getSelectedValue();
+				if(gamename == null) return;
 				textPane.setText((String) LinkCreator.this.games.get(gamename).getGameURL());
 				previewImage.setIcon(new ImageIcon(LinkCreator.this.games.get(gamename).getImage()));
 				LinkCreator.this.chckbxFromUrl.setSelected(true);
@@ -223,7 +252,6 @@ public class LinkCreator extends JFrame {
 						LinkCreator.this.generateLinks(((JRadioButton) obj).getText(), textPane);
 					}
 				}
-				System.out.println(gamename);
 			}
 		});
 		this.scrollPane.setViewportView(this.gameList);
@@ -244,12 +272,7 @@ public class LinkCreator extends JFrame {
 									SwingUtilities.invokeLater(new Runnable() {
 							            @Override
 							            public void run() {
-							            	DefaultListModel<String> listModel = new DefaultListModel<String>();
-											for (String string : LinkCreator.this.games.keySet()) {
-												listModel.addElement(string);
-											}
-											LinkCreator.this.gameList.setModel(listModel);
-											LinkCreator.this.gameList.updateUI();
+							            	fillList();
 							            }
 							        });
 									
@@ -318,19 +341,106 @@ public class LinkCreator extends JFrame {
 		progressBar.setBounds(10, 333, 437, 14);
 		contentPane.add(progressBar);
 		
-		previewImage.setBounds(280, 67, 210, 210);
+		previewImage.setBounds(285, 67, 210, 210);
 		contentPane.add(previewImage);
 		
-		JButton btnTest = new JButton("test");
-		btnTest.addActionListener(new ActionListener() {
+		JButton btnOptions = new JButton("Options");
+		btnOptions.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+				try {
+					JOptionPane.showConfirmDialog(null, Utilz.optionMenu(), "Options", JOptionPane.CLOSED_OPTION);
+				} catch (HeadlessException e2) {
+					// TODO Auto-generated catch block
+					e2.printStackTrace();
+				}
 			}
 		});
-		btnTest.setBounds(271, 309, 89, 23);
-		contentPane.add(btnTest);
+		btnOptions.setBounds(10, 309, 88, 23);
+		contentPane.add(btnOptions);
 		
 		new Updater(this).run();
+		propertyHandling();
+		checkAndLoadChacheFile();
+		if(prop.getProperty("newversion").equals("1")){
+			String message = "Do you want see the changelog?";
+			int reply = JOptionPane.showConfirmDialog(this, message, "View Changelog?", JOptionPane.YES_NO_OPTION);
+	        if (reply == JOptionPane.YES_OPTION) {
+	        	try {
+					JOptionPane.showMessageDialog(this, Utilz.createChangelogView());
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					Utilz.logger(this, e1);
+				}
+	        }
+	        setProperty("newversion", "0");
+		}
+		String entry = prop.getProperty("sendstatistic");
+		if(entry != null){
+			if(entry.equals("1")){
+				new SendStatistic().run();
+			}
+		}
+		copyFiles();
+		
+	}
+	
+	private void propertyHandling(){
+		if(checkPropFile()){
+			loadProperties();
+		} else {
+			createProperties();
+		}
+	}
+	
+	private boolean checkPropFile(){
+		return new File("linkcreator.conf").exists();
+	}
+	
+	private void loadProperties(){
+		try {
+			InputStream is = new FileInputStream(new File("linkcreator.conf"));
+			prop = new Properties(System.getProperties());
+			prop.load(is);
+			is.close();
+			if(!prop.getProperty("version").equalsIgnoreCase(VERSION)){
+//				new File("linkcreator.conf").delete();
+				setProperty("version", VERSION);
+				setProperty("newversion", "1");
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			Utilz.logger(this, e);
+		}
+	}
+	
+	public void setProperty(String key, String value){
+		try {
+			Writer writer = new FileWriter(new File("linkcreator.conf"));
+			prop.setProperty(key, value);
+			prop.store(writer, "LinkCreatorConfig");
+			writer.flush();
+			writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	private void createProperties(){
+		try {
+	    	Writer writer = new FileWriter(new File("linkcreator.conf"));
+			prop = new Properties(System.getProperties());
+			prop.setProperty("version", VERSION);
+			prop.setProperty("newversion", "1");
+			prop.setProperty("sendstatistic", "1");
+			prop.setProperty("createcachefile", "1");
+			prop.store(writer, "LinkCreatorConfig");
+			writer.flush();
+			writer.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			Utilz.logger(this, e);
+		}
 	}
 
 	public boolean generateLinks(String providerName, JTextPane textPane) {
@@ -353,7 +463,7 @@ public class LinkCreator extends JFrame {
 				input = Utilz.getPageSource(textPane.getText());
 			} catch (IOException e) {
 				JOptionPane.showMessageDialog(this.contentPane, "The entered URL is not VALID!", "Try again!", 0);
-				e.printStackTrace();
+				Utilz.logger(this, e);
 			}
 		}
 		String gamename = input.substring(input.indexOf("<title>") + 7, input.indexOf("</title>"));
@@ -361,7 +471,6 @@ public class LinkCreator extends JFrame {
 		gamename = gamename.replaceAll(" ", "-");
 		if ((this.chckbxDebug.isSelected()) && (this.chckbxFromUrl.isSelected())) {
 			input = input.substring(input.lastIndexOf("<b>Link " + providerName));
-			System.out.println(input);
 			return true;
 		}
 		ProviderEnum provider = ProviderEnum.getProviderByName(providerName);
@@ -392,7 +501,7 @@ public class LinkCreator extends JFrame {
 				pw.flush();
 				pw.close();
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+				Utilz.logger(this, e);
 			}
 			System.out.println("File saved to: " + file.getAbsolutePath());
 		}
@@ -422,7 +531,7 @@ public class LinkCreator extends JFrame {
 		for (String string : this.gameLinks) {
 			String gameurl = string.substring(string.indexOf("href=\"") + 6, string.indexOf("\" title="));
 			String gamename = string.substring(string.indexOf("\" title=") + 9, string.indexOf("\">"));
-			String imagePath = string.substring(string.indexOf("<img width=\"210\" height=\"210\" src=\"")+35, string.indexOf(" class=\"attachment-210x210")-1);
+			String imagePath = string.substring(string.indexOf("<img width=")+35, string.indexOf(" class=\"attachment")-1);
 			gamename = gamename.replace("Free Download", "");
 			gamename = gamename.replace("&#8217;", "'");
 			gamename = gamename.replace("&#8211;", "-");
@@ -448,6 +557,83 @@ public class LinkCreator extends JFrame {
 				
 			}
 		}
+	}
+	
+	private void checkAndLoadChacheFile(){
+		String entry = prop.getProperty("createcachefile");
+		if(entry != null){
+			if(entry.equals("0")){
+				return;
+			}
+		}
+		String path = LinkCreator.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+		path = path.replace("linkcreator.jar", "");
+		File file = new File(path + "/cache.dat");
+		if(file.exists()){
+			try {
+				ObjectInputStream is = new ObjectInputStream(new FileInputStream(file));
+				SaveClass save = (SaveClass)Utilz.decrypt(is);
+				Map<String, Game> games = save.getGames();
+				for(Game game : games.values()){
+					game.createImage();
+				}
+				this.games = games;
+				fillList();
+			} catch (InvalidKeyException | NoSuchAlgorithmException | NoSuchPaddingException | IOException e) {
+				// TODO Auto-generated catch block
+				Utilz.logger(this, e);
+			}
+		}
+		
+	}
+	
+	private void copyFiles(){
+		if(!new File(Utilz.getExecutionPath(this)+File.separator+"start.bat").exists()){
+			Utilz.copyFileFromJarToOutside("/start.bat", Utilz.getExecutionPath(this)+File.separator+"start.bat");
+		}
+		if(!new File(Utilz.getExecutionPath(this)+File.separator+"start.sh").exists()){
+			Utilz.copyFileFromJarToOutside("/start.sh", Utilz.getExecutionPath(this)+File.separator+"start.sh");
+		}
+	}
+	
+	private void createCacheFile(){
+		try {
+			if(games.isEmpty()){
+				return;
+			}
+			String path = LinkCreator.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+			path = path.replace("linkcreator.jar", "");
+			File file = new File(path + "/cache.dat");
+			ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(file));
+//			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+			
+			SaveClass save = new SaveClass(games);
+			
+			try {
+				Utilz.encrypt(save, out);
+			} catch (InvalidKeyException e) {
+				// TODO Auto-generated catch block
+				Utilz.logger(this, e);
+			} catch (NoSuchAlgorithmException e) {
+				// TODO Auto-generated catch block
+				Utilz.logger(this, e);
+			} catch (NoSuchPaddingException e) {
+				// TODO Auto-generated catch block
+				Utilz.logger(this, e);
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			Utilz.logger(this, e);
+		}
+	}
+	
+	private void fillList(){
+		DefaultListModel<String> listModel = new DefaultListModel<String>();
+		for (String string : LinkCreator.this.games.keySet()) {
+			listModel.addElement(string);
+		}
+		LinkCreator.this.gameList.setModel(listModel);
+		LinkCreator.this.gameList.updateUI();
 	}
 
 	void updateProgress(final int newValue) {

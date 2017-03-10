@@ -3,12 +3,9 @@ package de.xearox.creator;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.ArrayList;
 
 import javax.swing.JOptionPane;
-
-import org.apache.commons.io.FileUtils;
 
 public class Updater extends Thread{
 	
@@ -27,15 +24,19 @@ public class Updater extends Thread{
 	public void run() {
 		// TODO Auto-generated method stub
 		super.run();
+		if(new File(Utilz.getExecutionPath(this)+File.separator+"updater.jar").exists()){
+			new File(Utilz.getExecutionPath(this)+File.separator+"updater.jar").delete();
+		}
 		if(checkVersion() < 0){
 			int reply = JOptionPane.showConfirmDialog(frame.getPanel(), message, "New Update Available", JOptionPane.YES_NO_OPTION);
 	        if (reply == JOptionPane.YES_OPTION) {
 	        	try {
-	        		downloadNewVersion();
-					restartApplication();
+	        		Utilz.copyFileFromJarToOutside("/updater.jar", Utilz.getExecutionPath(this)+File.separator+"updater.jar");
+					startUpdater();
+					System.exit(0);
 				} catch (URISyntaxException e) {
 					// TODO Auto-generated catch block
-					e.printStackTrace();
+					Utilz.logger(this, e);
 				}
 	        }
 	        else {
@@ -44,10 +45,14 @@ public class Updater extends Thread{
 		}
 	}
 	
-	private void restartApplication() throws URISyntaxException {
-		final String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
-		final File currentJar = new File(LinkCreator.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-
+	private void startUpdater() throws URISyntaxException {
+		
+		String javaBin = System.getProperty("java.home") + File.separator + "bin" + File.separator + "java";
+		String currentJarPath = Updater.class.getProtectionDomain().getCodeSource().getLocation().getPath();
+		File currentJar = new File(Updater.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+		currentJarPath = currentJarPath.replace(currentJar.getName(), "updater.jar");
+		currentJar = new File(currentJarPath);
+		
 		/* is it a jar file? */
 		if (!currentJar.getName().endsWith(".jar"))
 			return;
@@ -57,6 +62,8 @@ public class Updater extends Thread{
 		command.add(javaBin);
 		command.add("-jar");
 		command.add(currentJar.getPath());
+		command.add(downloadURL);
+		System.out.println(command);
 
 		final ProcessBuilder builder = new ProcessBuilder(command);
 		try {
@@ -64,7 +71,7 @@ public class Updater extends Thread{
 			System.exit(0);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Utilz.logger(this, e);
 		}
 
 	}
@@ -77,7 +84,7 @@ public class Updater extends Thread{
 			downloadURL = strings[1].substring(strings[1].indexOf(":")+1, strings[1].length());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			e.printStackTrace();
+			Utilz.logger(this, e);
 		}
 	}
 	
@@ -99,18 +106,5 @@ public class Updater extends Thread{
 	    return Integer.signum(vals1.length - vals2.length);
 	}
 	
-	private void downloadNewVersion(){
-		try {
-			URL url = new URL(downloadURL);
-			String path = LinkCreator.class.getProtectionDomain().getCodeSource().getLocation().getPath();
-			path = path.replace("linkcreator.jar", "");
-			File file = new File(path + "/linkcreator.jar");
-			System.out.println(FileUtils.class.getProtectionDomain().getCodeSource().getLocation().getPath());
-			FileUtils.copyURLToFile(url, file);
-			System.out.println("File saved to: " + file.getAbsolutePath());
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
-	}
+	
 }
