@@ -5,17 +5,29 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.cert.Certificate;
+import java.io.*;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLPeerUnverifiedException;
+
 import javax.swing.JOptionPane;
+
+import de.xearox.creator.gui.MainWindow;
 
 public class Updater extends Thread{
 	
-	private LinkCreator frame;
+	private MainWindow frame;
+	private LinkCreator instance;
 	private String extVersion = "";
 	private String downloadURL = "";
 	private String message = "There is a new update!\n"+
 							 "Do you want to download it?\n";
 	
-	public Updater(LinkCreator frame) {
+	public Updater(LinkCreator instance, MainWindow frame) {
+		this.instance = instance;
 		this.frame = frame;
 		this.setUpdateData();
 	}
@@ -28,10 +40,10 @@ public class Updater extends Thread{
 			new File(Utilz.getExecutionPath(this)+File.separator+"updater.jar").delete();
 		}
 		if(checkVersion() < 0){
-			int reply = JOptionPane.showConfirmDialog(frame.getPanel(), message, "New Update Available", JOptionPane.YES_NO_OPTION);
+			int reply = JOptionPane.showConfirmDialog(null, message, "New Update Available", JOptionPane.YES_NO_OPTION);
 	        if (reply == JOptionPane.YES_OPTION) {
 	        	try {
-	        		Utilz.copyFileFromJarToOutside("/updater.jar", Utilz.getExecutionPath(this)+File.separator+"updater.jar");
+	        		Utilz.copyFileFromJarToOutside(instance,"/updater.jar", Utilz.getExecutionPath(this)+File.separator+"updater.jar");
 					startUpdater();
 					System.exit(0);
 				} catch (URISyntaxException e) {
@@ -78,7 +90,7 @@ public class Updater extends Thread{
 	
 	private void setUpdateData(){
 		try {
-			String source = Utilz.getPageSource("http://pastebin.com/raw/a6EGp7Vi");
+			String source = Utilz.getPageSource("https://pastebin.com/raw/a6EGp7Vi", true);
 			String[] strings = source.split(";");
 			extVersion = strings[0].substring(strings[0].indexOf(":")+1, strings[0].length());
 			downloadURL = strings[1].substring(strings[1].indexOf(":")+1, strings[1].length());
@@ -105,6 +117,6 @@ public class Updater extends Thread{
 	    // e.g. "1.2.3" = "1.2.3" or "1.2.3" < "1.2.3.4"
 	    return Integer.signum(vals1.length - vals2.length);
 	}
-	
+
 	
 }

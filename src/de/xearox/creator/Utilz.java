@@ -16,11 +16,15 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Scanner;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -30,13 +34,12 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SealedObject;
 import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.HttpsURLConnection;
 import javax.swing.BoxLayout;
-import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 import javax.swing.event.HyperlinkEvent;
 import javax.swing.event.HyperlinkListener;
 
@@ -50,14 +53,14 @@ public class Utilz {
 	private static final String transformation = "AES";
 	
 	
-	public static void copyFileFromJarToOutside(String inputPath, String destPath){
+	public static void copyFileFromJarToOutside(LinkCreator instance, String inputPath, String destPath){
 		URL inputUrl = Utilz.class.getClass().getResource(inputPath);
 		File dest = new File(destPath);
 		try {
 			FileUtils.copyURLToFile(inputUrl, dest);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
-			logger(LinkCreator.instance, e);
+			logger(instance, e);
 		}
 	}
 	
@@ -99,24 +102,62 @@ public class Utilz {
 	    }
 	}
 
-	public static String getPageSource(String pageLink) throws IOException {
-		URL url = new URL(pageLink);
-	
-		BufferedReader in = new BufferedReader(new InputStreamReader(url.openStream()));
-	
-		StringBuffer response = new StringBuffer();
-		String inputLine;
-		while ((inputLine = in.readLine()) != null) {
-			response.append(inputLine + "\n");
+	public static String getPageSource(String pageLink, boolean updater) throws IOException {
+		if(updater){
+			URL url = new URL(pageLink);
+			
+		    HttpsURLConnection con = (HttpsURLConnection)url.openConnection();
+			
+		    BufferedReader br =	new BufferedReader(new InputStreamReader(con.getInputStream()));
+
+			String input;
+			StringBuffer response = new StringBuffer();
+			while ((input = br.readLine()) != null){
+				response.append(input + "\n");  
+			}
+			br.close();
+			return response.toString();
+		} else {
+			LinkCreator.browser.loadURL(pageLink);
+			final CountDownLatch latch = new CountDownLatch(2);
+			try {
+				latch.await(1, TimeUnit.SECONDS);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return LinkCreator.browser.getHTML();
 		}
-		in.close();
-		return response.toString();
+		
+	}
+	
+	public static void logger(Object obj, String message){
+		try {
+			String workingDir = getExecutionPath(obj);
+			File file = new File(workingDir+File.separator+"linkcreator.log");
+			if(file.exists()){
+				try {
+				    Files.write(Paths.get("linkcreator.log"), (message+"\n").getBytes(), StandardOpenOption.APPEND);
+				}catch (IOException e) {
+				    //exception handling left as an exercise for the reader
+				}
+			} else {
+				FileWriter writer = new FileWriter(file);
+				writer.write(message);
+				writer.flush();
+				writer.close();
+			}
+			System.out.println(message);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(0);
+		}
 	}
 	
 	public static void logger(Object obj, Exception exception){
 		try {
 			String message = exception.getClass().getName() + "\n";
-			
 			for(StackTraceElement stack : exception.getStackTrace())
 				message += "\tat " + stack.getClassName() + "." + stack.getMethodName()+ "(" + stack.getFileName() + ":" + stack.getLineNumber() + ")\n";
 			
@@ -134,6 +175,7 @@ public class Utilz {
 				writer.flush();
 				writer.close();
 			}
+			System.out.println(message);
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -141,23 +183,23 @@ public class Utilz {
 		}
 	}
 	
-	public static JPanel optionMenu(){
+	public static JPanel optionMenu(LinkCreator instance){
 		JPanel panel = new JPanel();
 		JCheckBox sendStatisticChkBox = new JCheckBox("Send Statistic?");
-		String entry = LinkCreator.instance.prop.getProperty("sendstatistic");
+		String entry = instance.getProperties().getProperty("sendstatistic");
 		if(entry != null) sendStatisticChkBox.setSelected(entry.equals("1") ? true : false);
 		sendStatisticChkBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				LinkCreator.instance.setProperty("sendstatistic", sendStatisticChkBox.isSelected() ? "1" : "0");
+				instance.setProperty("sendstatistic", sendStatisticChkBox.isSelected() ? "1" : "0");
 			}
 		});
 		
 		JCheckBox createCacheFileChkBox = new JCheckBox("Create Cache File?");
-		entry = LinkCreator.instance.prop.getProperty("createcachefile");
+		entry = instance.getProperties().getProperty("createcachefile");
 		if(entry != null) createCacheFileChkBox.setSelected(entry.equals("1") ? true : false);
 		createCacheFileChkBox.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				LinkCreator.instance.setProperty("createcachefile", createCacheFileChkBox.isSelected() ? "1" : "0");
+				instance.setProperty("createcachefile", createCacheFileChkBox.isSelected() ? "1" : "0");
 			}
 		});
 		panel.setLayout(new BoxLayout(panel, BoxLayout.PAGE_AXIS));
@@ -168,7 +210,7 @@ public class Utilz {
 	}
 	
 	public static JEditorPane createChangelogView() throws IOException{
-		String input = Utilz.getPageSource(LinkCreator.changelogURL);
+		String input = Utilz.getPageSource(LinkCreator.changelogURL, true);
 		String[] lines = input.split(";");
 		String message = "";
 		for(String string : lines){

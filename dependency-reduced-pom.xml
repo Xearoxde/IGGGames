@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.xearox.creator</groupId>
   <artifactId>linkcreator</artifactId>
-  <version>1.5.1</version>
+  <version>1.6.1</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
@@ -49,27 +49,27 @@
         </configuration>
       </plugin>
       <plugin>
-        <artifactId>maven-dependency-plugin</artifactId>
-        <executions>
-          <execution>
-            <id>install-jar</id>
-            <phase>install</phase>
-            <goals>
-              <goal>copy</goal>
-            </goals>
-            <configuration>
-              <artifactItems>
-                <artifactItem>
-                  <groupId>de.xearox.creator</groupId>
-                  <artifactId>linkcreator</artifactId>
-                  <version>${project.version}</version>
-                </artifactItem>
-              </artifactItems>
-              <outputDirectory>C:\Users\chahn\Desktop\linkcreator</outputDirectory>
-              <stripVersion>true</stripVersion>
-            </configuration>
-          </execution>
-        </executions>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <mainClass>de.xearox.creator.LinkCreator</mainClass>
+            </manifest>
+          </archive>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifest>
+              <addClasspath>true</addClasspath>
+              <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+              <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
+            </manifest>
+          </archive>
+        </configuration>
       </plugin>
     </plugins>
   </build>
@@ -77,6 +77,10 @@
     <repository>
       <id>apache-common-io</id>
       <url>https://mvnrepository.com/artifact/commons-io/commons-io</url>
+    </repository>
+    <repository>
+      <id>com.teamdev</id>
+      <url>http://maven.teamdev.com/repository/products</url>
     </repository>
   </repositories>
 </project>
