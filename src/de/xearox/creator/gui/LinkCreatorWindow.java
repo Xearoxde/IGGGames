@@ -46,6 +46,7 @@ import org.apache.commons.codec.binary.Base64;
 
 import de.xearox.creator.Game;
 import de.xearox.creator.LinkCreator;
+import de.xearox.creator.Parser;
 import de.xearox.creator.ProviderEnum;
 import de.xearox.creator.Utilz;
 
@@ -379,49 +380,14 @@ public static final String VERSION = "1.5.2";
 		input = input.replaceAll("</a> – ", "\n</a>");
 		input = input.replaceAll("<b>.*?<a", "</a><a");
 		
-		List<String> encodedURLs = new ArrayList<>();
-		List<String> decodedURLs = new ArrayList<>();
+		String originalInput = input;
 		
-		encodedURLs = Arrays.asList(input.split("\n"));
+		input = Parser.mode1(input);
+		input = Parser.finalStep(provider, input);
 		
-		for(int i = 0 ; i < encodedURLs.size(); i++){
-			String temp = encodedURLs.get(i);
-			temp = temp.replace("</a><a target=\"_blank\" rel=\"nofollow\" href=\"http://igg-games.com/urls/", "");
-			temp = temp.substring(0, temp.indexOf("\""));
-			encodedURLs.set(i, temp);
-		}
-		
-		
-		encodedURLs.forEach(text->{
-			try {
-				byte[] decoded = Base64.decodeBase64(text);
-				decodedURLs.add(new String(decoded, "UTF-8"));
-			} catch (Exception e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		});
-		
-		
-		
-		
-		String[] string = decodedURLs.stream().toArray(String[]::new);
-		input = "";
-		for(String text : string){
-			try{
-				input = input + (text.substring(text.lastIndexOf("xurl"), text.length()))+ "\n";
-			} catch (StringIndexOutOfBoundsException e){
-				
-			}
-		}
-		input = input.replaceAll("</a>", "\n");
-		input = input.replaceAll(" – <a.*?<a href", " &#8211; <a href");
-		if (!this.chckbxDebug.isSelected()) {
-			for (String placeholder : provider.getPlaceholders()) {
-				String replacement = (String) provider.getReplacer()
-						.get(provider.getPlaceholders().indexOf(placeholder));
-				input = input.replaceAll(placeholder, replacement);
-			}
+		if(input.equalsIgnoreCase("")){
+			input = originalInput;
+			input = Parser.mode2(provider, input);
 		}
 		
 		this.textArea.setText(input);

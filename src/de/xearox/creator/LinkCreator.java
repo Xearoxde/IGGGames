@@ -27,7 +27,7 @@ import de.xearox.creator.gui.MainWindow;
 public class LinkCreator {
 	
 //	public static final String VERSION = LinkCreator.class.getClass().getPackage().getImplementationVersion();
-	public static final String VERSION = "1.6.2-WIN";
+	public static final String VERSION = "1.6.3-WIN";
 	
 	public static Browser browser;
 	public static BrowserView view;

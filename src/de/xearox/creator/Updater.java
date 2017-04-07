@@ -101,7 +101,7 @@ public class Updater extends Thread{
 	}
 	
 	private int checkVersion(){
-		String[] vals1 = LinkCreator.VERSION.split("\\.");
+		String[] vals1 = LinkCreator.VERSION.replace("-WIN", "").split("\\.");
 	    String[] vals2 = this.extVersion.split("\\.");
 	    int i = 0;
 	    // set index to first non-equal ordinal or length of shortest version string
