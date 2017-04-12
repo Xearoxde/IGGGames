@@ -14,6 +14,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Serializable;
+import java.net.HttpURLConnection;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -103,11 +104,17 @@ public class Utilz {
 	}
 
 	public static String getPageSource(String pageLink, boolean updater) throws IOException {
-		if(updater){
+		if(LinkCreator.runWithoutBrowser){
 			URL url = new URL(pageLink);
 			
-		    HttpsURLConnection con = (HttpsURLConnection)url.openConnection();
-			
+		    HttpURLConnection con = null;
+		    
+		    try{
+		    	con = (HttpsURLConnection)url.openConnection();
+		    } catch (ClassCastException e){
+		    	con = (HttpURLConnection)url.openConnection();
+		    }
+		    con.setRequestProperty("User-Agent", "Mozilla/5.0");
 		    BufferedReader br =	new BufferedReader(new InputStreamReader(con.getInputStream()));
 
 			String input;

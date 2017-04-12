@@ -42,7 +42,7 @@ public class MainWindow extends JFrame {
 					}
 				}
 				instance.createCacheFile(linkCreatorWindow);
-				browser.stop();
+				if(!LinkCreator.runWithoutBrowser) browser.stop();
 			}
 		});
 		setTitle("IGG-GAMES Download Link Creator - Created by Xearox - Version "+LinkCreator.VERSION);
@@ -53,7 +53,7 @@ public class MainWindow extends JFrame {
         tabbedPane.setBounds(0, 0, 782, 565);
         getContentPane().add(tabbedPane);
 		
-        tabbedPane.addTab("Browser", null, browserView, null);
+        if(!LinkCreator.runWithoutBrowser) tabbedPane.addTab("Browser", null, browserView, null);
         tabbedPane.addTab("LinkCreator", null, linkCreatorWindow, null);
 		
 		

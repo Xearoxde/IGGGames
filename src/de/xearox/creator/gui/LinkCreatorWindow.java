@@ -343,7 +343,7 @@ public static final String VERSION = "1.5.2";
 			input = textPane.getText();
 		} else {
 			try {
-				input = Utilz.getPageSource(textPane.getText(), false);
+				input = Utilz.getPageSource(textPane.getText(), LinkCreator.runWithoutBrowser);
 			} catch (IOException e) {
 				JOptionPane.showMessageDialog(this.contentPane, "The entered URL is not VALID!", "Try again!", 0);
 				Utilz.logger(this, e);
@@ -388,6 +388,10 @@ public static final String VERSION = "1.5.2";
 		if(input.equalsIgnoreCase("")){
 			input = originalInput;
 			input = Parser.mode2(provider, input);
+		}
+		if(input.equalsIgnoreCase("")){
+			input = originalInput;
+			input = Parser.mode3(provider, input);
 		}
 		
 		this.textArea.setText(input);
@@ -445,7 +449,7 @@ public static final String VERSION = "1.5.2";
 		String endGameLink = "<!-- /post -->";
 		String begin = "<a class=\"post-thumb \"";
 		String end = "</a>";
-		String pagesource = Utilz.getPageSource(url, false);
+		String pagesource = Utilz.getPageSource(url, LinkCreator.runWithoutBrowser);
 		for (int i = 0; i < 10; i++) {
 			try{
 				pagesource = pagesource.substring(pagesource.indexOf(begin));

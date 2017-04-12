@@ -27,10 +27,12 @@ import de.xearox.creator.gui.MainWindow;
 public class LinkCreator {
 	
 //	public static final String VERSION = LinkCreator.class.getClass().getPackage().getImplementationVersion();
-	public static final String VERSION = "1.6.3-WIN";
+	public static final String VERSION = "1.6.5-WIN";
 	
-	public static Browser browser;
+	public static Browser browser = null;
 	public static BrowserView view;
+	public static boolean runWithoutBrowser = true;
+	public static final String IGGURL = "http://www.igg-games.com";
 	
 	private Properties prop;
 	private static LinkCreator INSTANCE;
@@ -50,9 +52,15 @@ public class LinkCreator {
 	}
 	
 	public LinkCreator() {
-		browser = new Browser(BrowserType.LIGHTWEIGHT);
-		view = new BrowserView(browser);
-		browser.loadURL("http://www.igg-games.com");
+		if(!LinkCreator.runWithoutBrowser)
+		try{
+			browser = new Browser(BrowserType.LIGHTWEIGHT);
+			view = new BrowserView(browser);
+			browser.loadURL(IGGURL);
+		} catch(Exception e){
+			System.out.println("Run without browser");
+			LinkCreator.runWithoutBrowser = true;
+		}
 		LinkCreator.INSTANCE = this;
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {

@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>de.xearox.creator</groupId>
   <artifactId>linkcreator</artifactId>
-  <version>1.6.3</version>
+  <version>1.6.5</version>
   <build>
     <sourceDirectory>src</sourceDirectory>
     <resources>
